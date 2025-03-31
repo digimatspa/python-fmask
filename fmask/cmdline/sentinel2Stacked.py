@@ -25,6 +25,7 @@ import os
 import argparse
 import tempfile
 import glob
+import subprocess
 
 from osgeo import gdal
 from osgeo_utils import gdal_merge
@@ -213,9 +214,13 @@ def makeStackAndAngles(cmdargs):
 
     # We need to turn off exceptions while using gdal_merge, as it doesn't cope
     usingExceptions = gdal.GetUseExceptions()
-    gdal.DontUseExceptions()
-    gdal_merge.main(['-q', '-of', DEFAULTDRIVERNAME] + CMDLINECREATIONOPTIONS + 
-        ['-separate', '-o', cmdargs.toa] + resampledBands)
+    cmd = ["gdal_merge.py", "-q", "-of", DEFAULTDRIVERNAME] + CMDLINECREATIONOPTIONS \
+          + ["-separate", "-o", cmdargs.toa] + resampledBands
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if result.returncode != 0:
+        msg = 'Error in gdal merge'
+        raise fmaskerrors.FmaskException(msg)
+    
     if usingExceptions:
         gdal.UseExceptions()
     
